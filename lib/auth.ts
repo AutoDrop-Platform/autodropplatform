@@ -1,28 +1,32 @@
-import { createClientComponentClient, createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
+// Client-side environment check
 const isSupabaseConfigured = () => {
+  if (typeof window === "undefined") return false // Ensure client-side only
   return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 }
 
 // Client-side Supabase client for authentication
 export const createClient = () => {
+  if (typeof window === "undefined") {
+    throw new Error("Auth functions can only be used on the client side")
+  }
+
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase not configured")
   }
   return createClientComponentClient()
 }
 
-// Server-side Supabase client for authentication
-export const createServerClient = () => {
-  if (!isSupabaseConfigured()) {
-    throw new Error("Supabase not configured")
-  }
-  return createServerComponentClient({ cookies })
-}
-
 // Auth helper functions
 export const signIn = async (email: string, password: string) => {
+  if (typeof window === "undefined") {
+    return {
+      data: null,
+      error: { message: "Authentication only available on client side" },
+    }
+  }
+
   if (!isSupabaseConfigured()) {
     return {
       data: null,
@@ -46,6 +50,13 @@ export const signIn = async (email: string, password: string) => {
 }
 
 export const signUp = async (email: string, password: string) => {
+  if (typeof window === "undefined") {
+    return {
+      data: null,
+      error: { message: "Authentication only available on client side" },
+    }
+  }
+
   if (!isSupabaseConfigured()) {
     return {
       data: null,
@@ -59,7 +70,9 @@ export const signUp = async (email: string, password: string) => {
       email,
       password,
       options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
+        emailRedirectTo:
+          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+          `${typeof window !== "undefined" ? window.location.origin : ""}/dashboard`,
       },
     })
     return { data, error }
@@ -72,6 +85,10 @@ export const signUp = async (email: string, password: string) => {
 }
 
 export const signOut = async () => {
+  if (typeof window === "undefined") {
+    return { error: null }
+  }
+
   if (!isSupabaseConfigured()) {
     return { error: null }
   }
@@ -86,6 +103,10 @@ export const signOut = async () => {
 }
 
 export const getCurrentUser = async () => {
+  if (typeof window === "undefined") {
+    return { user: null, error: null }
+  }
+
   if (!isSupabaseConfigured()) {
     return { user: null, error: null }
   }
